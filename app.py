@@ -1,10 +1,15 @@
 from flask import Flask, render_template, request
 import sqlite3
+import os
 
 app = Flask(__name__)
 
+# ✅ Azure-safe persistent DB path
+BASE_DIR = os.environ.get("HOME", os.getcwd())
+DB_PATH = os.path.join(BASE_DIR, "site", "wwwroot", "users.db")
+
 def db_connection():
-    return sqlite3.connect("users.db")
+    return sqlite3.connect(DB_PATH)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -14,6 +19,8 @@ def index():
 
         conn = db_connection()
         cur = conn.cursor()
+
+        # Create table if not exists
         cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,8 +28,13 @@ def index():
             target_price REAL
         )
         """)
-        cur.execute("INSERT INTO users (mobile, target_price) VALUES (?,?)",
-                    (mobile, target_price))
+
+        # Insert user data
+        cur.execute(
+            "INSERT INTO users (mobile, target_price) VALUES (?, ?)",
+            (mobile, target_price)
+        )
+
         conn.commit()
         conn.close()
 
